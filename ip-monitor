@@ -1,0 +1,74 @@
+#!/bin/bash
+
+LOG_FILE="/tmp/ip-monitor.log";
+TMP_FILE="/tmp/ip-monitor.tmp";
+INTERVAL="5";
+
+function print_help {
+	echo "
+ip-monitor is a small utility for logging changes to your local ip-address.
+It was made for debugging a shaky wifi connection, but might be useful for 
+other stuff as well.
+
+Usage:
+	-h) This help page
+	-o) The logfile to write to (default is \"$LOG_FILE\")
+	-i) The interval between ip checks (default is \"$INTERVAL\")
+	";
+}
+
+function get_ip {
+	case "$(uname -s)" in 
+		"Darwin") echo "$(ifconfig en1 | grep -e 'inet ' | awk '{print $2}')";;
+	esac
+}
+
+function check_ip {
+	local CURRENT_IP="$(get_ip)";
+	local LAST_IP="$(tail -n 1 "$TMP_FILE")";
+	if [ "$CURRENT_IP" != "" ]; then
+		if [ "$CURRENT_IP" != "$LAST_IP" ]; then
+			echo "$CURRENT_IP" >> "$TMP_FILE";
+			log "New ip: $CURRENT_IP";
+		fi
+	else
+		if [ "$LAST_IP" != "" ]; then
+			log "Dropped network (no IP-address)";
+			echo "" >> "$TMP_FILE";
+		fi
+	fi
+
+}
+
+function log_silent {
+	echo "$1" >> "$LOG_FILE";
+}
+
+function log {
+	log_silent "$(date "+%Y%m%d-%H:%M" ): $1";
+}
+
+while getopts ho:i: option; do
+	case "${option}" in
+		h) print_help; exit;;
+		o) LOG_FILE="$OPTARG";;
+		i) 
+			num_regex='^[0-9,\.]+$';
+			if [[ ! "$OPTARG" =~ $num_regex ]]; then
+				echo "$OPTARG is not a number!" >&2 ;
+				exit 1;
+			else
+				INTERVAL="$OPTARG";
+			fi
+			;;
+	esac
+done
+
+printf "" > "$TMP_FILE";
+log_silent "--------------------------------------------------------------------------------" 
+log "New session";
+
+while true; do
+	check_ip;
+	sleep "$INTERVAL";
+done
