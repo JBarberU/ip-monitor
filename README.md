@@ -8,8 +8,8 @@ other stuff as well.
 
 ```bash
 -h) This help page
--o) The logfile to write to (default is \"$LOG_FILE\")
--i) The interval between ip checks (default is \"$INTERVAL\")
+-o) The logfile to write to (default is "/tmp/ip-monitor.log")
+-i) The interval between ip checks (default is "5")
 ```
 
 ## Todo
