@@ -14,7 +14,16 @@ Usage:
 	-h) This help page
 	-o) The logfile to write to (default is \"$LOG_FILE\")
 	-i) The interval between ip checks (default is \"$INTERVAL\")
+	-s) Prints some stats
 	";
+}
+
+function print_stats {
+	local NUM_DROPS=$(grep -e '^\d* $' /tmp/ip-monitor.tmp | wc -l | awk '{print  $1}')
+	local RAW_DATE="$(head -n 1 "$TMP_FILE" | awk '{print $1}')"
+	echo "Started running: $(date -r "$RAW_DATE" "+%Y%m%d-%H:%M")"
+	echo "Number of drops: $NUM_DROPS";
+	echo "Current ip: $(get_last_ip)";
 }
 
 function get_ip {
@@ -23,18 +32,28 @@ function get_ip {
 	esac
 }
 
+function get_last_ip {
+	local lines="$(wc -l "$TMP_FILE" | awk '{print $1}')";
+	if [ $lines -lt 2 ]; then
+		echo "";
+		return;
+	else
+		tail -n 1 "$TMP_FILE" | awk '{print $2}'
+	fi
+}
+
 function check_ip {
 	local CURRENT_IP="$(get_ip)";
-	local LAST_IP="$(tail -n 1 "$TMP_FILE")";
+	local LAST_IP="$(get_last_ip)";
 	if [ "$CURRENT_IP" != "" ]; then
 		if [ "$CURRENT_IP" != "$LAST_IP" ]; then
-			echo "$CURRENT_IP" >> "$TMP_FILE";
+			echo "$(date "+%s") $CURRENT_IP" >> "$TMP_FILE";
 			log "New ip: $CURRENT_IP";
 		fi
 	else
 		if [ "$LAST_IP" != "" ]; then
 			log "Dropped network (no IP-address)";
-			echo "" >> "$TMP_FILE";
+			echo "$(date "+%s") " >> "$TMP_FILE";
 		fi
 	fi
 
@@ -44,11 +63,15 @@ function log_silent {
 	echo "$1" >> "$LOG_FILE";
 }
 
-function log {
-	log_silent "$(date "+%Y%m%d-%H:%M" ): $1";
+function date_f {
+	date "+%Y%m%d-%H:%M";
 }
 
-while getopts ho:i: option; do
+function log {
+	log_silent "$(date_f): $1";
+}
+
+while getopts ho:i:s option; do
 	case "${option}" in
 		h) print_help; exit;;
 		o) LOG_FILE="$OPTARG";;
@@ -61,10 +84,13 @@ while getopts ho:i: option; do
 				INTERVAL="$OPTARG";
 			fi
 			;;
+		s) print_stats; exit;;
 	esac
 done
 
 printf "" > "$TMP_FILE";
+echo "$(date "+%s") $LOG_FILE" >> "$TMP_FILE";
+echo "-----------------------------------" >> "$TMP_FILE";
 log_silent "--------------------------------------------------------------------------------" 
 log "New session";
 
