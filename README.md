@@ -10,6 +10,7 @@ other stuff as well.
 -h) This help page
 -o) The logfile to write to (default is "/tmp/ip-monitor.log")
 -i) The interval between ip checks (default is "5")
+-s) Prints some stats
 ```
 
 ## Todo

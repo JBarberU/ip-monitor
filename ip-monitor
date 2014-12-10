@@ -19,7 +19,7 @@ Usage:
 }
 
 function print_stats {
-	local NUM_DROPS=$(grep -e '^\d* $' /tmp/ip-monitor.tmp | wc -l | awk '{print  $1}')
+	local NUM_DROPS=$(grep -e '^\d* $' "$TMP_FILE" | wc -l | awk '{print  $1}')
 	local RAW_DATE="$(head -n 1 "$TMP_FILE" | awk '{print $1}')"
 	echo "Started running: $(date -r "$RAW_DATE" "+%Y%m%d-%H:%M")"
 	echo "Number of drops: $NUM_DROPS";
