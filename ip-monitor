@@ -80,7 +80,7 @@ function log {
 	log_silent "$(date_f): $1";
 }
 
-while getopts ho:i:s option; do
+while getopts ynho:i:s option; do
 	case "${option}" in
 		h) print_help; exit;;
 		o) LOG_FILE="$OPTARG";;
@@ -94,13 +94,17 @@ while getopts ho:i:s option; do
 			fi
 			;;
 		s) print_stats; exit;;
+		y) ANS=Y;;
+		n) ANS=N;;
 	esac
 done
 
 if [ -f "$TMP_FILE" ]; then
 	echo "It seems like there has been a previous run since bootup";
 	printf "Continue with the statistics from that run? [Y/N]: ";
-	read ANS;
+	if [ -z $ANS ]; then
+		read ANS;
+	fi
 	case ${ANS} in
 		N|n|"No"|"NO")  printf "" > "$TMP_FILE";
 						echo "$(date "+%s") $LOG_FILE" >> "$TMP_FILE";
