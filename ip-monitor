@@ -18,11 +18,20 @@ Usage:
 	";
 }
 
+function to_hhmm {
+	local H="$(($1 / 3600))";
+	local M="$((($1 - $H) / 60))";
+	echo "$H"h "$M"m;
+}
+
 function print_stats {
 	local NUM_DROPS=$(grep -e '^\d* $' "$TMP_FILE" | wc -l | awk '{print  $1}')
-	local RAW_DATE="$(head -n 1 "$TMP_FILE" | awk '{print $1}')"
-	echo "Started running: $(date -r "$RAW_DATE" "+%Y%m%d-%H:%M")"
-	echo "Number of drops: $NUM_DROPS";
+	local START_RAW="$(head -n 1 "$TMP_FILE" | awk '{print $1}')"
+	local START_DATE="$(date -r "$START_RAW" "+%Y%m%d-%H:%M")"
+	local CURRENT_RAW="$(date "+%s")"
+	local DIFF_RAW="$(($CURRENT_RAW - $START_RAW))"
+	echo "Started running: $START_DATE ($(to_hhmm $DIFF_RAW) ago)"
+	echo "Number of drops: $NUM_DROPS (avg $((3600 * $NUM_DROPS / $DIFF_RAW))/h)";
 	echo "Current ip: $(get_last_ip)";
 }
 
@@ -88,9 +97,22 @@ while getopts ho:i:s option; do
 	esac
 done
 
-printf "" > "$TMP_FILE";
-echo "$(date "+%s") $LOG_FILE" >> "$TMP_FILE";
-echo "-----------------------------------" >> "$TMP_FILE";
+if [ -f "$TMP_FILE" ]; then
+	echo "It seems like there has been a previous run since bootup";
+	printf "Continue with the statistics from that run? [Y/N]: ";
+	read ANS;
+	case ${ANS} in
+		N|n|"No"|"NO")  printf "" > "$TMP_FILE";
+						echo "$(date "+%s") $LOG_FILE" >> "$TMP_FILE";
+						echo "-----------------------------------" >> "$TMP_FILE";
+						;;
+	esac
+else
+	printf "" > "$TMP_FILE";
+	echo "$(date "+%s") $LOG_FILE" >> "$TMP_FILE";
+	echo "-----------------------------------" >> "$TMP_FILE";
+fi
+
 log_silent "--------------------------------------------------------------------------------" 
 log "New session";
 
